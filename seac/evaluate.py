@@ -1,5 +1,5 @@
 import torch
-import robotic_warehouse
+import rware as robotic_warehouse
 import lbforaging
 import gym
 
