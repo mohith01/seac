@@ -79,7 +79,8 @@ class PrioritizedReplayBuffer(object):
             # tree_idx is a index of a sample in the tree, needed further to update priorities
             tree_idx, priority, sample_idx = self.tree.get(cumsum)
             # print(30*"+++")
-            # print(type(priority), priority)
+            # if 
+            # print(type(priority), sample_idx, cumsum, a,b, self.count,len(self._storage))
             if isinstance(priority,np.ndarray):
                 priority = priority.item()
                 # print(priority)
@@ -111,13 +112,15 @@ class PrioritizedReplayBuffer(object):
         # within a reasonable range, avoiding the possibility of extremely large updates. (Appendix B.2.1, Proportional prioritization)
         weights = weights / weights.max()
         # print(23*"+++")
-        # print("Sample_idxs",sample_idxs)
+        # print("Sample_idxs",sample_idxs, self.count )
+
         sample_idxs = [i for i in sample_idxs if i!=None]
 
         # print(sample_idxs)
         x,y,z,w,u = self._encode_sample(sample_idxs)
         # print(type(weights))
         # print(type(tree_idxs))
+        # print(self._storage)
         return x,y,z,w,u, weights, tree_idxs
 
     def _encode_sample(self, idxes):

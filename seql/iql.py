@@ -196,7 +196,14 @@ class IQL(MarlAlgorithm):
         # print("Samples for batch")
         # print(weights)
         # raise Exception("Host Done")
-        # print("q_states",q_states)
+        # print("q_states",q_states, "weights", weights.shape)
+        # print(weights)
+        zero_tensor = torch.zeros((1, 1))
+
+        if weights.shape ==(127,1):
+            weights = torch.cat((weights, zero_tensor), dim=0)
+        # print("Weights",weights.shape)
+        # print("Q_states",(q_states-target_states.detach()).shape)
         # raise Exception("Q-values")
         # print("Weights",weights)
 
@@ -212,7 +219,10 @@ class IQL(MarlAlgorithm):
             qloss += self.shared_lambda * MSELoss(q_states[other_agents_mask], target_states[other_agents_mask].detach())
         else:
             # qloss = MSELoss(q_states, target_states.detach())
-            qloss = torch.mean((q_states-target_states.detach())**2 * weights)
+            mean1 = (q_states-target_states.detach())
+            if mean1.shape == (127,1):
+                mean1 = torch.cat((mean1, zero_tensor), dim=0) 
+            qloss = torch.mean(mean1**2 * weights)
             td_error = torch.abs(q_states-target_states.detach()).detach()
         # print("Td_error: ", td_error)
             # print("Q_Loss:", qloss, "td_error:", td_error)
