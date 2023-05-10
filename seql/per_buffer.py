@@ -9,7 +9,8 @@ from marl_algorithm import MarlAlgorithm
 from marl_utils import soft_update
 from agent import Agent
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device='cpu'
+device = torch.device("cuda:0" if torch.cuda.is_available() else device)
 
 MSELoss = torch.nn.MSELoss()
 
@@ -126,7 +127,7 @@ class IQL(MarlAlgorithm):
                 a.target_model = fn(a.target_model)
             self.trgt_model_dev = device
 
-    def update_agent(self, sample, agent_i, use_cuda, weights=None):
+    def update_agent(self, sample, agent_i, use_cuda):
         """
         Update parameters of agent model based on sample from replay buffer
         :param sample: tuple of (observations, actions, rewards, next
@@ -138,8 +139,6 @@ class IQL(MarlAlgorithm):
         """
         # timer = time.process_time()
         obs, acs, rews, next_obs, dones = sample
-
-       
         curr_agent = self.agents[agent_i]
 
         curr_agent.optimizer.zero_grad()
@@ -169,40 +168,9 @@ class IQL(MarlAlgorithm):
             rews.view(-1, 1)
             + self.gamma * target_next_states.view(-1, 1)# * (1 - dones.view(-1, 1))
         )
-
-        # target_timer = time.process_time() - timer
-        # print(f"\t\tTarget computation time: {target_timer}")
-        # timer = time.process_time()
-
-
         # local Q-values
         all_q_states = curr_agent.model(obs)
-        # print("all_q_states",all_q_states)
-        # print("Weights 1", )
         q_states = torch.sum(all_q_states * acs, dim=1).view(-1, 1)
-        if weights == None:
-            weights = torch.ones_like(q_states)
-
-        mask = torch.isnan(weights)
-        # print(type(weights))
-        # print(torch.isnan(weights))
-        # print(weights)
-        # print(weights.shape)
-        weights = weights[~mask].view(-1,1)
-        # print("Filtered Weights")
-        # print(weights)
-        # print(weights.shape)
-        # print(weights[ weights.isnan()])
-        # print("Samples for batch")
-        # print(weights)
-        # raise Exception("Host Done")
-        # print("q_states",q_states)
-        # raise Exception("Q-values")
-        # print("Weights",weights)
-
-        # q_timer = time.process_time() - timer
-        # print(f"\t\tQ-values computation time: {q_timer}")
-        # timer = time.process_time()
 
         if self.shared_experience:
             batch_size_agent = self.batch_size // self.n_agents
@@ -211,23 +179,15 @@ class IQL(MarlAlgorithm):
             qloss = MSELoss(q_states[agent_mask], target_states[agent_mask].detach())
             qloss += self.shared_lambda * MSELoss(q_states[other_agents_mask], target_states[other_agents_mask].detach())
         else:
-            # qloss = MSELoss(q_states, target_states.detach())
-            qloss = torch.mean((q_states-target_states.detach())**2 * weights)
-            td_error = torch.abs(q_states-target_states.detach()).detach()
-        # print("Td_error: ", td_error)
-            # print("Q_Loss:", qloss, "td_error:", td_error)
-            # qerror = torch.mean((q_states-target_states.detach())**2)
-
-        # print("qerror: ", qerror, "q_loss: ", qloss)
+            qloss = MSELoss(q_states, target_states.detach())
 
         # loss_timer = time.process_time() - timer
         # print(f"\t\tLoss computation time: {loss_timer}")
-        
         qloss.backward()
         torch.nn.utils.clip_grad_norm_(curr_agent.model.parameters(), 0.5)
         curr_agent.optimizer.step()
 
-        return qloss, td_error
+        return qloss
 
     def update(self, memory, use_cuda=False):
         """
@@ -247,25 +207,14 @@ class IQL(MarlAlgorithm):
             # print(f"\tUpdate agent {a_i}:")
             # timer = time.process_time()
             if not self.shared_experience:
-                x,y,z,w,u, weights, tree_idxs = memory.sample(self.params.batch_size, a_i)
+                x,y,z,w,u,weights,tree_idxs  = memory.sample(self.params.batch_size, a_i)
                 samples = (x,y,z,w,u)
-                # print(len(samples))
-                # print(samples[5])
-                # raise Exception("Hiiiiii")
-                
+
             # sample_time = time.process_time() - timer
             # print(f"\t\tSample time from memory: {sample_time}")
-            q_loss, td_error  = self.update_agent(samples, a_i, use_cuda=False, weights=weights)
+            q_loss, td_error = self.update_agent(samples, a_i, use_cuda=False, weights=weights)
             q_losses.append(q_loss)
-
-            memory.update_batch(a_i, tree_idxs, td_error.numpy())
-            # print(100*"----")
-            # print("Agent_I:",a_i)
-
-            # print("TreeIdx:",tree_idxs)
-            # print("Samples for batch")
-            # print(type(td_error), tree_idxs)
-            # raise Exception("Host Done")
+            self.memory.update_buffer(a_i, tree_idxs, td_error.numpy())
         self.update_all_targets()
         self.prep_rollouts(device=device)
 

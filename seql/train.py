@@ -10,7 +10,7 @@ from gym.spaces import Box, Dict, Discrete, MultiBinary, MultiDiscrete
 
 from iql import IQL
 from baseline_buffer import MARLReplayBuffer
-
+from per import MARLPriorityBuffer
 from utilities.model_saver import ModelSaver
 from utilities.logger import Logger
 
@@ -298,7 +298,7 @@ class Train:
         for a_size in action_sizes[1:]:
             assert act_size == a_size
 
-        self.memory = MARLReplayBuffer(
+        self.memory = MARLPriorityBuffer(
             self.arglist.buffer_capacity,
             n_agents,
         )
@@ -332,6 +332,7 @@ class Train:
             obs = self.reset_environment()
             self.alg.reset(ep)
 
+
             # episode_returns = np.array([0.0] * n_agents)
             episode_length = 0
             done = False
@@ -356,12 +357,16 @@ class Train:
 
                 # env_time += time.process_time() - timer
                 # timer = time.process_time()
+
+                
+                # print("Episode Length", ep,len(self.memory),self.arglist.batch_size, self.arglist.steps_per_update, self.arglist.buffer_capacity)
                 if (
                     len(self.memory) >= self.arglist.batch_size
                     and (t % self.arglist.steps_per_update) == 0
                 ):
                     losses = self.alg.update(self.memory, USE_CUDA)
                     self.logger.log_losses(ep, losses)
+                    # print("Losses", losses)
                     #self.logger.dump_losses(1)
 
                 # update_time += time.process_time() - timer
@@ -405,6 +410,8 @@ class Train:
             if ep % 100 == 0 and ep > 0:
                 duration = time.process_time() - start_time
                 self.logger.dump_train_progress(ep, self.arglist.num_episodes, duration)
+                # raise Exception("Error is shit broken")
+
 
             if ep % self.arglist.save_interval == 0 and ep > 0:
                 # save models
