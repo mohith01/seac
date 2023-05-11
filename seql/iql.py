@@ -222,7 +222,7 @@ class IQL(MarlAlgorithm):
             mean1 = (q_states-target_states.detach())
             if mean1.shape != (128,1):
                 diff = 128 - mean1.shape[0]
-                print(diff)
+                # print(diff)
                 if diff >0:
                     for _ in range(diff):
                         mean1 = torch.cat((mean1, zero_tensor), dim=0) 
