@@ -137,6 +137,7 @@ class MARLReplayBuffer(object):
             the end of an episode and 0 otherwise.
         """
         batch_size_each = batch_size // self.num_agents
+        print(batch_size_each)
         obs = []
         act = []
         rew = []

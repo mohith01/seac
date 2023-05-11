@@ -220,8 +220,12 @@ class IQL(MarlAlgorithm):
         else:
             # qloss = MSELoss(q_states, target_states.detach())
             mean1 = (q_states-target_states.detach())
-            if mean1.shape == (127,1):
-                mean1 = torch.cat((mean1, zero_tensor), dim=0) 
+            if mean1.shape != (128,1):
+                diff = 128 - mean1.shape[0]
+                print(diff)
+                if diff >0:
+                    for _ in range(diff):
+                        mean1 = torch.cat((mean1, zero_tensor), dim=0) 
             qloss = torch.mean(mean1**2 * weights)
             td_error = torch.abs(q_states-target_states.detach()).detach()
         # print("Td_error: ", td_error)

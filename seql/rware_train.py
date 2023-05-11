@@ -106,4 +106,5 @@ class RWARETrain(Train):
 
 if __name__ == "__main__":
     train = RWARETrain()
+    # train.eval(20, 2)
     train.train()

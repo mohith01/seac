@@ -229,7 +229,7 @@ class Train:
                 torch.backends.cudnn.benchmark = False
 
 
-    def train(self):
+    def train(self, eval=False):
         """
         Abstract training flow
         """
@@ -290,6 +290,9 @@ class Train:
         self.alg = IQL(
             n_agents, observation_sizes, action_sizes, self.arglist
         )
+        
+
+        
 
         obs_size = observation_sizes[0]
         for o_size in observation_sizes[1:]:
@@ -297,6 +300,7 @@ class Train:
         act_size = action_sizes[0]
         for a_size in action_sizes[1:]:
             assert act_size == a_size
+
 
         self.memory = MARLPriorityBuffer(
             self.arglist.buffer_capacity,

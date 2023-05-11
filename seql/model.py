@@ -23,6 +23,7 @@ class QNetwork(nn.Module):
         self.fc2 = nn.Linear(hidden_dim, hidden_dim)
         self.fc3 = nn.Linear(hidden_dim, action_size)
         self.nonlin = nonlin
+        self.fc4 = nn.Linear(hidden_dim, 1)
 
     def forward(self, state):
         """
@@ -32,4 +33,7 @@ class QNetwork(nn.Module):
         """
         x = self.nonlin(self.fc1(state))
         x = self.nonlin(self.fc2(x))
-        return self.fc3(x)
+        action = self.fc3(x)
+        value = self.fc4(x)
+        action_score = action - torch.mean(action, dim=-1, keepdim=True)
+        return value + action_score
